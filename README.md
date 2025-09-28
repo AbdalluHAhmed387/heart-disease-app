@@ -49,13 +49,6 @@ This app uses the classic **Heart Disease Dataset**
 
 ---
 
-
-
-### 🖥️ App Interface
-![App Screenshot](https://i.ibb.co/jv1d7nL/heart-app-demo.png)
-
----
-
 ## 📦 Installation (Run Locally)
 
 Clone the repository:
