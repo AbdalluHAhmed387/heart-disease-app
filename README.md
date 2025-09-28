@@ -35,9 +35,9 @@ The project applies multiple **classification algorithms** including:
 ---
 
 ## 📂 Dataset
-This app uses the classic **Heart Disease Dataset** from UCI/Kaggle:  
-- [Healthcare Risk Factors Dataset (Kaggle)](https://www.kaggle.com/datasets/abdallaahmed77/healthcare-risk-factors-dataset)
+This app uses the classic **Heart Disease Dataset**  
 
+- https://archive.ics.uci.edu/dataset/45/heart+disease
 ---
 
 ## 🛠️ Tech Stack
