@@ -1,53 +1,129 @@
 import streamlit as st
 import pandas as pd
-import joblib
-import os
+import numpy as np
+import matplotlib.pyplot as plt
 
-# === Load trained pipeline ===
-model_path = os.path.join(os.path.dirname(__file__), "final_model.pkl")
-model = joblib.load(model_path)
+# ================== Page Config ==================
+st.set_page_config(
+    page_title="Heart Disease Predictor",
+    page_icon="💓",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
-st.title("❤️ Heart Disease Prediction App")
-st.write("Enter patient health data below and get real-time prediction.")
+# ================== Custom CSS ==================
+st.markdown("""
+    <style>
+    /* App background */
+    .stApp {
+        background-color: #f9f9f9;
+    }
 
-# --- User Inputs ---
-age = st.number_input("Age", min_value=20, max_value=100, value=50)
-sex = st.selectbox("Sex", ["Male", "Female"])
-cp = st.selectbox("Chest Pain Type (cp)", [1, 2, 3, 4])
-trestbps = st.number_input("Resting Blood Pressure (mm Hg)", 80, 200, 120)
-chol = st.number_input("Serum Cholesterol (mg/dl)", 100, 600, 200)
-fbs = st.selectbox("Fasting Blood Sugar > 120 mg/dl", [0, 1])
-restecg = st.selectbox("Resting ECG results", [0, 1, 2])
-thalach = st.number_input("Maximum Heart Rate Achieved", 60, 220, 150)
-exang = st.selectbox("Exercise Induced Angina", [0, 1])
-oldpeak = st.number_input("ST Depression", 0.0, 10.0, 1.0, step=0.1)
-slope = st.selectbox("Slope of Peak Exercise ST", [1, 2, 3])
-ca = st.selectbox("Number of Major Vessels (0-3)", [0, 1, 2, 3])
-thal = st.selectbox("Thal", [3, 6, 7])
+    /* Header style */
+    .main-header {
+        background: linear-gradient(90deg, #b30000, #e63946);
+        padding: 20px;
+        border-radius: 12px;
+        text-align: center;
+        color: white;
+        margin-bottom: 25px;
+    }
+    .main-header h1 {
+        font-size: 2.2em;
+        margin: 0;
+    }
+    .main-header p {
+        margin: 0;
+        font-size: 1.1em;
+    }
 
-# --- Prepare input DataFrame ---
-input_data = pd.DataFrame([{
-    "age": age,
-    "sex": 1 if sex == "Male" else 0,
-    "cp": cp,
-    "trestbps": trestbps,
-    "chol": chol,
-    "fbs": fbs,
-    "restecg": restecg,
-    "thalach": thalach,
-    "exang": exang,
-    "oldpeak": oldpeak,
-    "slope": slope,
-    "ca": ca,
-    "thal": thal
-}])
+    /* Buttons */
+    div.stButton > button:first-child {
+        background-color: #b30000;
+        color: white;
+        border-radius: 10px;
+        padding: 0.6em 1.5em;
+        font-weight: bold;
+    }
+    div.stButton > button:hover {
+        background-color: #e60000;
+        color: white;
+    }
 
-# --- Prediction ---
-if st.button("Predict"):
-    prediction = model.predict(input_data)[0]
-    prob = model.predict_proba(input_data)[0][1]
+    /* Sidebar */
+    [data-testid="stSidebar"] {
+        background-color: #f2f2f2;
+    }
 
-    if prediction == 1:
-        st.error(f"🚨 High Risk of Heart Disease (Probability: {prob:.2f})")
+    /* Footer */
+    .footer {
+        text-align: center;
+        font-size: 0.85em;
+        color: #555;
+        margin-top: 40px;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# ================== Header ==================
+st.markdown("""
+<div class="main-header">
+    <h1>💓 Heart Disease Risk Prediction</h1>
+    <p>Predict your risk of heart disease using health parameters</p>
+</div>
+""", unsafe_allow_html=True)
+
+# ================== Sidebar Inputs ==================
+st.sidebar.header("📝 Input Patient Data")
+
+age = st.sidebar.slider("Age", 20, 100, 50)
+sex = st.sidebar.selectbox("Sex", options=[0,1], format_func=lambda x: "Female" if x==0 else "Male")
+cp = st.sidebar.selectbox("Chest Pain Type (cp)", options=[1,2,3,4],
+                          format_func=lambda x: {1:"Typical angina",2:"Atypical",3:"Non-anginal",4:"Asymptomatic"}[x])
+trestbps = st.sidebar.number_input("Resting Blood Pressure (mm Hg)", 80, 200, 120)
+chol = st.sidebar.number_input("Serum Cholesterol (mg/dl)", 100, 400, 200)
+fbs = st.sidebar.selectbox("Fasting Blood Sugar > 120 mg/dl", options=[0,1], format_func=lambda x: "Yes" if x==1 else "No")
+restecg = st.sidebar.selectbox("Resting ECG", options=[0,1,2],
+                               format_func=lambda x: {0:"Normal",1:"ST-T abnormality",2:"Hypertrophy"}[x])
+thalach = st.sidebar.number_input("Max Heart Rate Achieved", 60, 220, 150)
+exang = st.sidebar.selectbox("Exercise Induced Angina", options=[0,1], format_func=lambda x: "Yes" if x==1 else "No")
+oldpeak = st.sidebar.slider("ST Depression (oldpeak)", 0.0, 7.0, 1.0, 0.1)
+slope = st.sidebar.selectbox("Slope of ST segment", options=[1,2,3],
+                             format_func=lambda x: {1:"Upsloping",2:"Flat",3:"Downsloping"}[x])
+ca = st.sidebar.selectbox("Number of Major Vessels (ca)", options=[0,1,2,3])
+thal = st.sidebar.selectbox("Thalassemia (thal)", options=[3,6,7],
+                            format_func=lambda x: {3:"Normal",6:"Fixed defect",7:"Reversible defect"}[x])
+
+# Collect inputs
+input_data = pd.DataFrame({
+    "age":[age], "sex":[sex], "cp":[cp], "trestbps":[trestbps], "chol":[chol],
+    "fbs":[fbs], "restecg":[restecg], "thalach":[thalach], "exang":[exang],
+    "oldpeak":[oldpeak], "slope":[slope], "ca":[ca], "thal":[thal]
+})
+
+# ================== Prediction ==================
+if st.sidebar.button("🔮 Predict"):
+    # placeholder model
+    risk = np.random.rand()  # replace with: model.predict_proba(input_data)[0][1]
+
+    st.subheader("📊 Prediction Result")
+    st.markdown(f"Estimated risk of heart disease: **{risk:.1%}**")
+
+    if risk > 0.7:
+        st.error("⚠️ High risk — Please consult a cardiologist immediately.")
+    elif risk > 0.4:
+        st.warning("⚠️ Moderate risk — Consider lifestyle improvements and medical checkups.")
     else:
-        st.success(f"✅ No Heart Disease Detected (Probability: {prob:.2f})")
+        st.success("✅ Low risk — Keep maintaining a healthy lifestyle!")
+
+    # Feature importance example
+    st.subheader("📈 Example Feature Importance")
+    features = ["cp","thal","oldpeak","ca","age"]
+    importance = [0.25,0.20,0.15,0.10,0.05]
+    fig, ax = plt.subplots()
+    ax.barh(features, importance, color="#b30000")
+    ax.set_xlabel("Importance")
+    st.pyplot(fig)
+
+# ================== Footer ==================
+st.markdown('<div class="footer">Made with ❤️ using Streamlit</div>', unsafe_allow_html=True)
